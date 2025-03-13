@@ -1,35 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>意汉趣味配对游戏</title>
+    <title>意汉趣味配对</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
     <style>
-        /* 基础样式 */
         body {
-            background: linear-gradient(135deg, #e3dcd2, #c4b9ac);
+            background: linear-gradient(135deg, #FFD3B6 0%, #A8E6CF 100%);
             display: flex;
-            font-family: 'Arial Rounded MT Bold';
+            font-family: 'Comic Sans MS', cursive;
             min-height: 100vh;
             margin: 0;
             padding: 20px;
-            position: relative;
         }
 
-        /* 日期显示 */
-        #dateDisplay {
-            position: fixed;
-            top: 20px;
-            right: 30px;
-            font-size: 18px;
-            color: #fff;
-            background: rgba(0,0,0,0.3);
-            padding: 8px 15px;
-            border-radius: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1000;
-        }
-
-        /* 上传区域 */
+        /* 左侧上传区域 */
         #uploadSection {
             width: 250px;
             padding: 20px;
@@ -62,7 +46,7 @@
             background: rgba(102,178,255,0.2);
         }
 
-        /* 单词卡片 */
+        /* 单词卡片样式 */
         .word-card {
             padding: 15px;
             border-radius: 10px;
@@ -72,8 +56,12 @@
             font-size: 18px;
             box-shadow: 0 3px 6px rgba(0,0,0,0.1);
         }
-        #italianWords .word-card { background: #FFB366; }
-        #chineseWords .word-card { background: #66B3FF; }
+        #italianWords .word-card {
+            background: #FFB366;
+        }
+        #chineseWords .word-card {
+            background: #66B3FF;
+        }
         .selected {
             transform: scale(1.1);
             box-shadow: 0 0 15px rgba(255,255,255,0.8);
@@ -83,7 +71,7 @@
             animation: shake 0.5s;
         }
 
-        /* 温度计 */
+        /* 温度计样式 */
         #thermometer {
             width: 35px;
             height: 300px;
@@ -117,7 +105,6 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
-        /* 动画效果 */
         @keyframes shake {
             0% { transform: translateX(0); }
             25% { transform: translateX(5px); }
@@ -125,30 +112,10 @@
             75% { transform: translateX(5px); }
             100% { transform: translateX(0); }
         }
-        .correct-line {
-            position: absolute;
-            height: 3px;
-            background: #8aa87f;
-            transform-origin: left center;
-            animation: lineFade 1s forwards;
-        }
-        @keyframes lineFade {
-            0% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-        .matched {
-            animation: matchFade 0.8s forwards;
-        }
-        @keyframes matchFade {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); background: #8aa87f; opacity: 0.8; }
-            100% { transform: scale(0); opacity: 0; }
-        }
     </style>
 </head>
 <body>
-    <div id="dateDisplay"></div>
-
+    <!-- 左侧上传区 -->
     <div id="uploadSection">
         <h2>📁 上传词库</h2>
         <input type="file" id="excelInput" accept=".xlsx,.xls">
@@ -156,6 +123,7 @@
         <div id="wordList"></div>
     </div>
 
+    <!-- 游戏主界面 -->
     <div id="gameContainer">
         <div id="timer">
             <input type="number" id="timeInput" placeholder="倒计时(秒)" min="1" style="padding: 8px">
@@ -171,28 +139,18 @@
         </div>
     </div>
 
+    <!-- 温度计 -->
     <div id="thermometer">
         <div id="progress" style="height: 0%"></div>
     </div>
 
 <script>
-// 日期显示
-function updateDate() {
-    const today = new Date();
-    document.getElementById('dateDisplay').textContent = today.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    }).replace(/\//g, '-');
-}
-window.addEventListener('DOMContentLoaded', updateDate);
-
-// 游戏逻辑
 let words = [];
 let selected = { it: null, cn: null };
 let timerId = null;
 let timeLeft = 0;
 
+// 文件上传处理
 document.getElementById('excelInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -208,6 +166,7 @@ document.getElementById('excelInput').addEventListener('change', function(e) {
     reader.readAsArrayBuffer(file);
 });
 
+// 游戏控制
 document.getElementById('startBtn').addEventListener('click', toggleGame);
 document.getElementById('resetBtn').addEventListener('click', resetGame);
 
@@ -234,36 +193,47 @@ function startGame() {
     }, 1000);
 }
 
+// 生成单词卡片
 function generateWordCards() {
     const shuffled = [...words].sort(() => Math.random() - 0.5);
     
+    // 意大利语列（3列）
     document.getElementById('italianWords').innerHTML = shuffled
         .map(word => `<div class="word-card" data-word="${word.italian}">${word.italian}</div>`)
         .join('');
 
+    // 中文列（4列）
     document.getElementById('chineseWords').innerHTML = shuffled
         .sort(() => Math.random() - 0.5)
         .map(word => `<div class="word-card" data-word="${word.italian}">${word.chinese}</div>`)
         .join('');
 
+    // 添加点击事件
     document.querySelectorAll('.word-card').forEach(card => {
         card.addEventListener('click', handleClick);
     });
 }
 
+// 点击处理
 function handleClick(e) {
     const card = e.target;
     const isItalian = card.parentElement.id === 'italianWords';
 
+    // 清除已选项
     document.querySelectorAll(`#${isItalian ? 'italian' : 'chinese'}Words .selected`)
         .forEach(c => c.classList.remove('selected'));
 
+    // 设置当前选择
     card.classList.add('selected');
     isItalian ? selected.it = card : selected.cn = card;
 
-    if (selected.it && selected.cn) checkMatch();
+    // 当选择两个单词时验证
+    if (selected.it && selected.cn) {
+        checkMatch();
+    }
 }
 
+// 验证匹配
 function checkMatch() {
     const isCorrect = words.some(word => 
         word.italian === selected.it.dataset.word && 
@@ -271,33 +241,16 @@ function checkMatch() {
     );
 
     if (isCorrect) {
-        const line = document.createElement('div');
-        line.className = 'correct-line';
-        const itRect = selected.it.getBoundingClientRect();
-        const cnRect = selected.cn.getBoundingClientRect();
-        
-        const dx = cnRect.left - itRect.right;
-        const dy = (cnRect.top + cnRect.height/2) - (itRect.top + itRect.height/2);
-        const length = Math.sqrt(dx*dx + dy*dy);
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-        
-        line.style.width = `${length}px`;
-        line.style.left = `${itRect.right}px`;
-        line.style.top = `${itRect.top + itRect.height/2}px`;
-        line.style.transform = `rotate(${angle}deg)`;
-        document.body.appendChild(line);
-
+        // 正确匹配效果
         [selected.it, selected.cn].forEach(card => {
-            card.classList.add('matched');
-            card.style.pointerEvents = 'none';
+            card.style.transition = 'all 0.5s';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0)';
+            setTimeout(() => card.remove(), 500);
         });
-
-        setTimeout(() => {
-            line.remove();
-            [selected.it, selected.cn].forEach(card => card.remove());
-            updateProgress();
-        }, 800);
+        updateProgress();
     } else {
+        // 错误效果
         [selected.it, selected.cn].forEach(card => {
             card.classList.add('wrong');
             setTimeout(() => card.classList.remove('wrong'), 1000);
@@ -306,12 +259,14 @@ function checkMatch() {
     selected = { it: null, cn: null };
 }
 
+// 更新进度条
 function updateProgress() {
     const remaining = document.querySelectorAll('.word-card').length;
     const progress = ((words.length*2 - remaining)/2 / words.length * 100).toFixed(1);
     document.getElementById('progress').style.height = progress + '%';
 }
 
+// 其他功能函数
 function updateTimer() {
     const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
     const seconds = String(timeLeft % 60).padStart(2, '0');
